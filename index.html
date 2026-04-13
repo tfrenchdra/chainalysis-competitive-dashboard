@@ -1,0 +1,1060 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Competitive Intelligence Dashboard - Digital Reach Agency</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f3f4f6; color: #1f2937; }
+        .container { display: flex; height: 100vh; overflow: hidden; }
+        .sidebar { width: 280px; background-color: #111827; color: #f3f4f6; padding: 24px 0; overflow-y: auto; box-shadow: 2px 0 8px rgba(0,0,0,0.15); position: fixed; height: 100vh; left: 0; z-index: 1000; }
+        .sidebar::-webkit-scrollbar { width: 6px; }
+        .sidebar::-webkit-scrollbar-track { background: #1f2937; }
+        .sidebar::-webkit-scrollbar-thumb { background: #374151; border-radius: 3px; }
+        .main-content { margin-left: 280px; flex: 1; overflow-y: auto; padding: 0 0 40px; }
+        .sidebar-header { padding: 0 24px 32px; border-bottom: 1px solid #374151; }
+        .sidebar-logo { font-weight: 700; font-size: 16px; color: #1a56db; margin-bottom: 4px; }
+        .sidebar-subtitle { font-size: 12px; color: #9ca3af; text-transform: uppercase; letter-spacing: 1px; }
+        .sidebar-nav { list-style: none; padding: 16px 0; }
+        .sidebar-nav li { margin: 2px 0; }
+        .nav-link { display: block; padding: 10px 24px; color: #d1d5db; text-decoration: none; font-size: 14px; transition: all 0.2s; border-left: 3px solid transparent; cursor: pointer; }
+        .nav-link:hover { background-color: #1f2937; color: #fff; }
+        .nav-link.active { background-color: #1f2937; color: #1a56db; border-left-color: #1a56db; font-weight: 600; }
+        .header { background: linear-gradient(135deg, #1a56db 0%, #1e40af 100%); color: white; padding: 32px 40px; }
+        .header h1 { font-size: 24px; font-weight: 700; margin-bottom: 4px; }
+        .header p { font-size: 14px; opacity: 0.85; }
+        .section { display: none; padding: 32px 40px; }
+        .section.active { display: block; }
+        .section-title { font-size: 22px; font-weight: 700; color: #111827; margin-bottom: 8px; }
+        .section-desc { font-size: 14px; color: #6b7280; line-height: 1.6; margin-bottom: 24px; max-width: 900px; }
+        .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 32px; }
+        .kpi-card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border-top: 3px solid #1a56db; }
+        .kpi-card.competitor1 { border-top-color: #f59e0b; }
+        .kpi-card.competitor2 { border-top-color: #ef4444; }
+        .kpi-label { font-size: 12px; text-transform: uppercase; color: #6b7280; letter-spacing: 0.5px; margin-bottom: 8px; }
+        .kpi-value { font-size: 28px; font-weight: 700; color: #111827; }
+        .kpi-domain { font-size: 11px; color: #9ca3af; margin-top: 4px; }
+        .chart-container { background: white; padding: 24px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 32px; position: relative; min-height: 400px; }
+        .chart-title { font-size: 16px; font-weight: 600; margin-bottom: 20px; color: #111827; }
+        .chart-desc { font-size: 13px; color: #9ca3af; margin-top: -12px; margin-bottom: 16px; line-height: 1.5; }
+        .charts-row { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 32px; }
+        .metrics-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 16px; }
+        th { text-align: left; padding: 10px 12px; background: #f9fafb; border-bottom: 2px solid #e5e7eb; font-weight: 600; color: #374151; font-size: 12px; text-transform: uppercase; }
+        td { padding: 10px 12px; border-bottom: 1px solid #f3f4f6; }
+        tr:hover { background: #f9fafb; }
+        td a { color: #1a56db; text-decoration: none; word-break: break-all; }
+        td a:hover { text-decoration: underline; }
+        .tabs { display: flex; gap: 8px; margin-bottom: 24px; flex-wrap: wrap; }
+        .tab-button { padding: 8px 20px; border: 1px solid #e5e7eb; border-radius: 6px; background: white; cursor: pointer; font-size: 13px; color: #6b7280; transition: all 0.2s; }
+        .tab-button.active { background: #1a56db; color: white; border-color: #1a56db; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .threat-card { background: white; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 24px; overflow: hidden; }
+        .threat-header { padding: 16px 24px; display: flex; align-items: center; gap: 12px; }
+        .threat-header.critical { background: #fef2f2; border-left: 4px solid #ef4444; }
+        .threat-header.warning { background: #fffbeb; border-left: 4px solid #f59e0b; }
+        .threat-header.opportunity { background: #ecfdf5; border-left: 4px solid #10b981; }
+        .threat-severity { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; padding: 2px 8px; border-radius: 4px; }
+        .threat-severity.critical { background: #fee2e2; color: #dc2626; }
+        .threat-severity.warning { background: #fef3c7; color: #d97706; }
+        .threat-severity.opportunity { background: #d1fae5; color: #059669; }
+        .threat-title { font-size: 14px; font-weight: 600; color: #111827; }
+        .threat-desc { font-size: 13px; color: #6b7280; margin-top: 8px; }
+        .info-card { background: #e3f2fd; border: 1px solid #90caf9; border-radius: 8px; padding: 12px 20px; margin: 20px 40px 0; display: flex; align-items: flex-start; gap: 12px; }
+        .info-icon { width: 20px; height: 20px; border-radius: 50%; background: #1565c0; color: white; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; flex-shrink: 0; margin-top: 1px; }
+        .info-card-text { font-size: 13px; color: #1565c0; line-height: 1.5; }
+        .insight-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 32px; }
+        .insight-box { background: white; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); padding: 20px; }
+        .insight-box h3 { font-size: 16px; font-weight: 600; margin-bottom: 12px; color: #111827; }
+        .insight-box p { font-size: 13px; color: #6b7280; line-height: 1.6; }
+        .footer { text-align: center; padding: 32px 40px; color: #9ca3af; font-size: 13px; border-top: 1px solid #e5e7eb; margin-top: 40px; }
+        .metric-card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); text-align: center; }
+        .metric-label { font-size: 12px; text-transform: uppercase; color: #6b7280; margin-bottom: 8px; }
+        .metric-value { font-size: 32px; font-weight: 700; }
+        .metric-sub { font-size: 12px; color: #9ca3af; margin-top: 4px; }
+        .competitor-table { margin-top: 20px; }
+        .competitor-row { background: white; border-radius: 8px; padding: 16px; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 1fr; gap: 16px; align-items: center; }
+        .competitor-row h3 { font-size: 14px; font-weight: 600; color: #111827; }
+        .competitor-value { font-size: 16px; font-weight: 600; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <nav class="sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-logo">DIGITAL REACH AGENCY</div>
+                <div class="sidebar-subtitle">Competitive Intelligence</div>
+            </div>
+            <ul class="sidebar-nav">
+                <li><a href="#" class="nav-link active" onclick="switchSection('executive-summary', event)">Executive Summary</a></li>
+                <li><a href="#" class="nav-link" onclick="switchSection('sov-trends', event)">Share of Voice Trends</a></li>
+                <li><a href="#" class="nav-link" onclick="switchSection('authority-trends', event)">Authority Trends</a></li>
+                <li><a href="#" class="nav-link" onclick="switchSection('traffic-trends', event)">Organic Traffic</a></li>
+                <li><a href="#" class="nav-link" onclick="switchSection('traffic-location', event)">Traffic by Location</a></li>
+                <li><a href="#" class="nav-link" onclick="switchSection('competitive-metrics', event)">Competitive Metrics</a></li>
+                <li><a href="#" class="nav-link" onclick="switchSection('top-pages', event)">Top Pages</a></li>
+                <li><a href="#" class="nav-link" onclick="switchSection('keyword-gaps', event)">Keyword Gap Analysis</a></li>
+                <li><a href="#" class="nav-link" onclick="switchSection('aio-performance', event)">AI Overview Performance</a></li>
+                <li><a href="#" class="nav-link" onclick="switchSection('strategic-threats', event)">Strategic Threats & Insights</a></li>
+            </ul>
+        </nav>
+
+        <main class="main-content">
+            <div class="header">
+                <h1>Chainalysis — Competitive Intelligence</h1>
+                <p>Chainalysis vs TRM Labs, Elliptic</p>
+            </div>
+
+            <div class="info-card">
+                <div class="info-icon">ℹ</div>
+                <div class="info-card-text">April 13, 2026 | Source: Ahrefs | Mode: Subdomains (includes www and all subdomains) | Backlink counts are live crawl values and may fluctuate slightly between pulls</div>
+            </div>
+
+            <!-- Executive Summary -->
+            <section id="executive-summary" class="section active">
+                <h2 class="section-title">Executive Summary</h2>
+                <p class="section-desc">Key performance indicators and competitive comparison of Chainalysis against TRM Labs and Elliptic. This overview shows organic traffic, keyword strength, authority metrics, and overall market positioning.</p>
+
+                <h3 style="font-size: 18px; font-weight: 600; margin: 24px 0 16px; color: #111827;">Chainalysis Key Metrics</h3>
+                <div class="kpi-grid">
+                    <div class="kpi-card">
+                        <div class="kpi-label">Organic Keywords</div>
+                        <div class="kpi-value">2,722</div>
+                        <div class="kpi-domain">chainalysis.com</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-label">Organic Traffic</div>
+                        <div class="kpi-value">24.8K</div>
+                        <div class="kpi-domain">monthly visits</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-label">Traffic Value</div>
+                        <div class="kpi-value">$32.9K</div>
+                        <div class="kpi-domain">monthly value</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-label">Domain Rating</div>
+                        <div class="kpi-value">83</div>
+                        <div class="kpi-domain">authority score</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-label">Referring Domains</div>
+                        <div class="kpi-value">23.7K</div>
+                        <div class="kpi-domain">live domains linking</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-label">Backlinks</div>
+                        <div class="kpi-value">4.2M</div>
+                        <div class="kpi-domain">live backlinks</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-label">Top 3 Keywords</div>
+                        <div class="kpi-value">567</div>
+                        <div class="kpi-domain">position 1-3</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-label">Paid Keywords</div>
+                        <div class="kpi-value">2</div>
+                        <div class="kpi-domain">active ads</div>
+                    </div>
+                </div>
+
+                <h3 style="font-size: 18px; font-weight: 600; margin: 24px 0 16px; color: #111827;">Competitive Comparison</h3>
+                <div class="competitor-table">
+                    <div class="competitor-row">
+                        <h3>Chainalysis</h3>
+                        <div class="metric-card"><div class="metric-label">Keywords</div><div class="metric-value">2,722</div></div>
+                        <div class="metric-card"><div class="metric-label">Traffic</div><div class="metric-value">24.8K</div></div>
+                        <div class="metric-card"><div class="metric-label">DR</div><div class="metric-value">83</div></div>
+                        <div class="metric-card"><div class="metric-label">Ref. Domains</div><div class="metric-value">23.7K</div></div>
+                    </div>
+                    <div class="competitor-row" style="border-left: 4px solid #f59e0b;">
+                        <h3>TRM Labs</h3>
+                        <div class="metric-card"><div class="metric-label">Keywords</div><div class="metric-value">1,829</div></div>
+                        <div class="metric-card"><div class="metric-label">Traffic</div><div class="metric-value">19.6K</div></div>
+                        <div class="metric-card"><div class="metric-label">DR</div><div class="metric-value">75</div></div>
+                        <div class="metric-card"><div class="metric-label">Ref. Domains</div><div class="metric-value">9.5K</div></div>
+                    </div>
+                    <div class="competitor-row" style="border-left: 4px solid #ef4444;">
+                        <h3>Elliptic</h3>
+                        <div class="metric-card"><div class="metric-label">Keywords</div><div class="metric-value">920</div></div>
+                        <div class="metric-card"><div class="metric-label">Traffic</div><div class="metric-value">7.3K</div></div>
+                        <div class="metric-card"><div class="metric-label">DR</div><div class="metric-value">75</div></div>
+                        <div class="metric-card"><div class="metric-label">Ref. Domains</div><div class="metric-value">11.5K</div></div>
+                    </div>
+                </div>
+
+                <h3 style="font-size: 18px; font-weight: 600; margin: 32px 0 16px; color: #111827;">Organic Competitors Landscape</h3>
+                <p style="font-size: 13px; color: #6b7280; margin-bottom: 16px;">Top domains competing with Chainalysis in organic search (by keyword overlap)</p>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Competitor</th>
+                            <th>Common Keywords</th>
+                            <th>Total Keywords</th>
+                            <th>Monthly Traffic</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><a href="https://www.investopedia.com" target="_blank">investopedia.com</a></td><td>818</td><td>747,987</td><td>8.4M</td></tr>
+                        <tr><td><a href="https://www.coinbase.com" target="_blank">coinbase.com</a></td><td>666</td><td>77,070</td><td>2.3M</td></tr>
+                        <tr><td><a href="https://www.binance.com" target="_blank">binance.com</a></td><td>539</td><td>60,676</td><td>1.7M</td></tr>
+                        <tr><td><a href="https://www.coinmarketcap.com" target="_blank">coinmarketcap.com</a></td><td>525</td><td>76,849</td><td>6.2M</td></tr>
+                        <tr><td><a href="https://www.kraken.com" target="_blank">kraken.com</a></td><td>430</td><td>51,413</td><td>1.0M</td></tr>
+                        <tr><td><a href="https://www.coingecko.com" target="_blank">coingecko.com</a></td><td>390</td><td>58,295</td><td>949K</td></tr>
+                        <tr><td><a href="https://www.trmlabs.com" target="_blank">trmlabs.com</a></td><td>382</td><td>1,447</td><td>19.6K</td></tr>
+                        <tr><td><a href="https://www.gemini.com" target="_blank">gemini.com</a></td><td>358</td><td>8,636</td><td>387K</td></tr>
+                        <tr><td><a href="https://www.coindesk.com" target="_blank">coindesk.com</a></td><td>356</td><td>28,559</td><td>1.7M</td></tr>
+                        <tr><td><a href="https://www.theblock.co" target="_blank">theblock.co</a></td><td>326</td><td>12,557</td><td>144K</td></tr>
+                    </tbody>
+                </table>
+            </section>
+
+            <!-- Share of Voice Trends -->
+            <section id="sov-trends" class="section">
+                <h2 class="section-title">Share of Voice Trends</h2>
+                <p class="section-desc">Organic traffic percentage share among competitors over the past 13 months, plus raw traffic volume and competitive positioning changes.</p>
+
+                <div class="chart-container">
+                    <div class="chart-title">Share of Voice - Organic Traffic Percentage</div>
+                    <div class="chart-desc">Shows each domain's percentage of combined organic traffic over 13 months</div>
+                    <div style="height:350px;"><canvas id="sovChart"></canvas></div>
+                </div>
+
+                <div class="charts-row">
+                    <div class="chart-container">
+                        <div class="chart-title">Raw Organic Traffic Volume</div>
+                        <div class="chart-desc">Monthly organic traffic for all three domains</div>
+                        <div style="height:300px;"><canvas id="trafficVolumeChart"></canvas></div>
+                    </div>
+                    <div class="chart-container">
+                        <div class="chart-title">Traffic Value Trend</div>
+                        <div class="chart-desc">Monthly traffic value (USD) over time</div>
+                        <div style="height:300px;"><canvas id="trafficValueChart"></canvas></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Authority Trends -->
+            <section id="authority-trends" class="section">
+                <h2 class="section-title">Authority Trends</h2>
+                <p class="section-desc">Domain Rating and referring domains growth over the past 13 months, showing authority trajectory and link acquisition rates.</p>
+
+                <div class="charts-row">
+                    <div class="chart-container">
+                        <div class="chart-title">Domain Rating History</div>
+                        <div class="chart-desc">Authority score progression over 13 months</div>
+                        <div style="height:300px;"><canvas id="drChart"></canvas></div>
+                    </div>
+                    <div class="chart-container">
+                        <div class="chart-title">Referring Domains Growth</div>
+                        <div class="chart-desc">Number of linking domains over time</div>
+                        <div style="height:300px;"><canvas id="refdomainsChart"></canvas></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Organic Traffic Trends -->
+            <section id="traffic-trends" class="section">
+                <h2 class="section-title">Organic Traffic Trends</h2>
+                <p class="section-desc">Monthly organic traffic progression for Chainalysis and competitors, showing growth patterns and seasonal fluctuations.</p>
+
+                <div class="chart-container">
+                    <div class="chart-title">Monthly Organic Traffic Comparison</div>
+                    <div class="chart-desc">13-month trend of organic traffic volume for all three domains</div>
+                    <div style="height:400px;"><canvas id="monthlyTrafficChart"></canvas></div>
+                </div>
+            </section>
+
+            <!-- Traffic by Location -->
+            <section id="traffic-location" class="section">
+                <h2 class="section-title">Traffic by Location</h2>
+                <p class="section-desc">Chainalysis's top 10 countries by organic traffic, showing geographic distribution of audience and market concentration.</p>
+
+                <div class="chart-container">
+                    <div class="chart-title">Top Countries by Organic Traffic</div>
+                    <div class="chart-desc">Chainalysis's organic traffic breakdown by country (top 10)</div>
+                    <div style="height:400px;"><canvas id="countriesChart"></canvas></div>
+                </div>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Country</th>
+                            <th>Organic Traffic</th>
+                            <th>Keywords</th>
+                            <th>Traffic Value</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>United States</td><td>24,754</td><td>2,722</td><td>$32,931</td></tr>
+                        <tr><td>United Kingdom</td><td>2,865</td><td>365</td><td>$2,721</td></tr>
+                        <tr><td>India</td><td>2,068</td><td>341</td><td>$2,671</td></tr>
+                        <tr><td>Canada</td><td>1,655</td><td>267</td><td>$2,276</td></tr>
+                        <tr><td>Japan</td><td>756</td><td>70</td><td>$840</td></tr>
+                        <tr><td>Germany</td><td>691</td><td>83</td><td>$767</td></tr>
+                        <tr><td>South Korea</td><td>667</td><td>56</td><td>$1,459</td></tr>
+                        <tr><td>Brazil</td><td>638</td><td>49</td><td>$1,271</td></tr>
+                        <tr><td>Singapore</td><td>603</td><td>87</td><td>$1,089</td></tr>
+                        <tr><td>Australia</td><td>551</td><td>152</td><td>$1,347</td></tr>
+                    </tbody>
+                </table>
+            </section>
+
+            <!-- Competitive Metrics -->
+            <section id="competitive-metrics" class="section">
+                <h2 class="section-title">Competitive Metrics</h2>
+                <p class="section-desc">Direct comparison of key SEO metrics across all three domains with percentage distribution showing relative strength in each area.</p>
+
+                <div class="charts-row">
+                    <div class="chart-container">
+                        <div class="chart-title">Referring Domains Comparison</div>
+                        <div style="height:300px;"><canvas id="refdomainsCompChart"></canvas></div>
+                    </div>
+                    <div class="chart-container">
+                        <div class="chart-title">Domain Rating Comparison</div>
+                        <div style="height:300px;"><canvas id="drCompChart"></canvas></div>
+                    </div>
+                </div>
+
+                <div class="charts-row">
+                    <div class="chart-container">
+                        <div class="chart-title">Organic Traffic Comparison</div>
+                        <div style="height:300px;"><canvas id="trafficCompChart"></canvas></div>
+                    </div>
+                    <div class="chart-container">
+                        <div class="chart-title">Organic Keywords Comparison</div>
+                        <div style="height:300px;"><canvas id="keywordsCompChart"></canvas></div>
+                    </div>
+                </div>
+
+                <div class="charts-row">
+                    <div class="chart-container">
+                        <div class="chart-title">Traffic Value Comparison</div>
+                        <div style="height:300px;"><canvas id="valueCompChart"></canvas></div>
+                    </div>
+                    <div class="chart-container">
+                        <div class="chart-title">Backlinks Comparison</div>
+                        <div style="height:300px;"><canvas id="backlinksCompChart"></canvas></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Top Pages -->
+            <section id="top-pages" class="section">
+                <h2 class="section-title">Top Pages</h2>
+                <p class="section-desc">Highest-traffic pages for each domain, showing which content drives the most organic traffic and keyword performance.</p>
+
+                <div class="tabs">
+                    <button class="tab-button active" onclick="switchTopPagesTab('chainalysis', event)">Chainalysis</button>
+                    <button class="tab-button" onclick="switchTopPagesTab('trmlabs', event)">TRM Labs</button>
+                    <button class="tab-button" onclick="switchTopPagesTab('elliptic', event)">Elliptic</button>
+                </div>
+
+                <div id="chainalysis-pages" class="tab-content active">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>URL</th>
+                                <th>Traffic</th>
+                                <th>Keywords</th>
+                                <th>Top Keyword</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr><td><a href="https://www.chainalysis.com/" target="_blank">https://www.chainalysis.com/</a></td><td>10,752</td><td>612</td><td>chainalysis</td></tr>
+                            <tr><td><a href="https://www.chainalysis.com/blog/stablecoin-utility-future-of-payments/" target="_blank">stablecoin-utility-future-of-payments</a></td><td>1,565</td><td>19</td><td>crypto regulation news today us</td></tr>
+                            <tr><td><a href="https://www.chainalysis.com/blog/perpetual-futures/" target="_blank">perpetual-futures</a></td><td>640</td><td>50</td><td>what are perpetual futures</td></tr>
+                            <tr><td><a href="https://www.chainalysis.com/blog/" target="_blank">/blog/</a></td><td>603</td><td>33</td><td>chainalysis</td></tr>
+                            <tr><td><a href="https://www.chainalysis.com/blog/spot-bitcoin-etfs/" target="_blank">spot-bitcoin-etfs</a></td><td>563</td><td>183</td><td>bitcoin etf approval date</td></tr>
+                            <tr><td><a href="https://www.chainalysis.com/solution/crypto-investigations/" target="_blank">crypto-investigations</a></td><td>480</td><td>38</td><td>blockchain investigation</td></tr>
+                            <tr><td><a href="https://www.chainalysis.com/blog/crypto-staking/" target="_blank">crypto-staking</a></td><td>414</td><td>51</td><td>what is staking crypto</td></tr>
+                            <tr><td><a href="https://www.chainalysis.com/blog/introduction-to-cross-chain-bridges/" target="_blank">introduction-to-cross-chain-bridges</a></td><td>404</td><td>45</td><td>crypto bridges</td></tr>
+                            <tr><td><a href="https://www.chainalysis.com/careers/" target="_blank">/careers/</a></td><td>330</td><td>13</td><td>chainalysis</td></tr>
+                            <tr><td><a href="https://www.chainalysis.com/blog/2025-global-crypto-adoption-index/" target="_blank">2025-global-crypto-adoption-index</a></td><td>325</td><td>59</td><td>cryptocurrency adoption</td></tr>
+                            <tr><td><a href="https://www.chainalysis.com/blog/bitcoin-strategic-reserves/" target="_blank">bitcoin-strategic-reserves</a></td><td>321</td><td>6</td><td>strategic bitcoin reserve</td></tr>
+                            <tr><td><a href="https://www.chainalysis.com/chainalysis-certification-programs/" target="_blank">chainalysis-certification-programs</a></td><td>309</td><td>29</td><td>chainalysis</td></tr>
+                            <tr><td><a href="https://www.chainalysis.com/blog/is-bitcoin-traceable/" target="_blank">is-bitcoin-traceable</a></td><td>308</td><td>60</td><td>is bitcoin traceable</td></tr>
+                            <tr><td><a href="https://www.chainalysis.com/product/kyt/" target="_blank">product/kyt</a></td><td>295</td><td>17</td><td>kyt compliance</td></tr>
+                            <tr><td><a href="https://www.chainalysis.com/blog/blockchain-gaming/" target="_blank">blockchain-gaming</a></td><td>289</td><td>19</td><td>blockchain gaming</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div id="trmlabs-pages" class="tab-content">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>URL</th>
+                                <th>Traffic</th>
+                                <th>Keywords</th>
+                                <th>Top Keyword</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr><td><a href="https://www.trmlabs.com/resources/blog/understanding-nobitex" target="_blank">understanding-nobitex</a></td><td>3,846</td><td>18</td><td>nobitex</td></tr>
+                            <tr><td><a href="https://www.trmlabs.com/" target="_blank">https://www.trmlabs.com/</a></td><td>3,779</td><td>69</td><td>trm</td></tr>
+                            <tr><td><a href="https://www.trmlabs.com/resources/blog/mango-markets" target="_blank">mango-markets (eisenberg)</a></td><td>1,829</td><td>5</td><td>avi eisenberg</td></tr>
+                            <tr><td><a href="https://www.trmlabs.com/glossary/crypto-tracing" target="_blank">glossary/crypto-tracing</a></td><td>886</td><td>42</td><td>can crypto be traced</td></tr>
+                            <tr><td><a href="https://www.trmlabs.com/resources/blog/ilya-lichtenstein" target="_blank">ilya-lichtenstein (bitfinex)</a></td><td>573</td><td>53</td><td>heather morgan bitcoin</td></tr>
+                            <tr><td><a href="https://www.trmlabs.com/resources/blog/pig-butchering-scams" target="_blank">pig-butchering-scams</a></td><td>568</td><td>18</td><td>pig butchering scam</td></tr>
+                            <tr><td><a href="https://www.trmlabs.com/glossary/darknet-market" target="_blank">glossary/darknet-market</a></td><td>473</td><td>37</td><td>darknet markets</td></tr>
+                            <tr><td><a href="https://www.trmlabs.com/glossary/fiat-currency" target="_blank">glossary/fiat-currency</a></td><td>443</td><td>121</td><td>what is fiat in crypto</td></tr>
+                            <tr><td><a href="https://www.trmlabs.com/glossary/privacy-coins" target="_blank">glossary/privacy-coins</a></td><td>418</td><td>22</td><td>privacy coins</td></tr>
+                            <tr><td><a href="https://www.trmlabs.com/resources/blog/fundamentals-of-crypto-tracing" target="_blank">fundamentals-of-crypto-tracing</a></td><td>387</td><td>31</td><td>can bitcoin be traced</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div id="elliptic-pages" class="tab-content">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>URL</th>
+                                <th>Traffic</th>
+                                <th>Keywords</th>
+                                <th>Top Keyword</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr><td><a href="https://www.elliptic.co/blog/ai-deepfake-undresser-tools" target="_blank">ai-deepfake-undresser-tools</a></td><td>3,688</td><td>52</td><td>undresser ai</td></tr>
+                            <tr><td><a href="https://www.elliptic.co/" target="_blank">https://www.elliptic.co/</a></td><td>1,002</td><td>112</td><td>区块链查询</td></tr>
+                            <tr><td><a href="https://www.elliptic.co/blog/jokers-stash-retiring" target="_blank">jokers-stash-retiring</a></td><td>414</td><td>14</td><td>joker stash</td></tr>
+                            <tr><td><a href="https://www.elliptic.co/blog/crypto-regulatory-affairs-clarity-act" target="_blank">crypto-regulatory-affairs-clarity-act</a></td><td>241</td><td>5</td><td>clarity act update</td></tr>
+                            <tr><td><a href="https://www.elliptic.co/blockchain-basics/what-is-the-travel-rule" target="_blank">what-is-the-travel-rule</a></td><td>159</td><td>30</td><td>travel rule crypto</td></tr>
+                            <tr><td><a href="https://www.elliptic.co/blog/15-billion-us-seizure" target="_blank">15-billion-us-seizure</a></td><td>153</td><td>23</td><td>lubian</td></tr>
+                            <tr><td><a href="https://www.elliptic.co/platform/investigator" target="_blank">platform/investigator</a></td><td>104</td><td>17</td><td>blockchain forensics</td></tr>
+                            <tr><td><a href="https://www.elliptic.co/blog/crypto-regulatory-affairs-us-congress" target="_blank">crypto-regulatory-affairs-us-congress</a></td><td>88</td><td>14</td><td>crypto meeting</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Keyword Gap Analysis -->
+            <section id="keyword-gaps" class="section">
+                <h2 class="section-title">Keyword Gap Analysis</h2>
+                <p class="section-desc">High-volume, non-branded keywords where competitors rank in top 10 but Chainalysis doesn't (or ranks weaker). Represents immediate SEO opportunities.</p>
+
+                <div class="tabs">
+                    <button class="tab-button active" onclick="switchGapTab('trm-gap', event)">TRM Labs Gaps</button>
+                    <button class="tab-button" onclick="switchGapTab('elliptic-gap', event)">Elliptic Gaps</button>
+                </div>
+
+                <div id="trm-gap" class="tab-content active">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Keyword</th>
+                                <th>Position</th>
+                                <th>Volume</th>
+                                <th>Traffic</th>
+                                <th>URL</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>fiat currency</td><td>1</td><td>26,000</td><td>1,569</td><td><a href="https://www.trmlabs.com/glossary/fiat-currency" target="_blank">glossary/fiat-currency</a></td></tr>
+                            <tr><td>fiat money</td><td>1</td><td>18,000</td><td>0</td><td><a href="https://www.trmlabs.com/glossary/fiat-currency" target="_blank">glossary/fiat-currency</a></td></tr>
+                            <tr><td>stablecoin</td><td>1</td><td>17,000</td><td>0</td><td><a href="https://www.trmlabs.com/glossary/stablecoins" target="_blank">glossary/stablecoins</a></td></tr>
+                            <tr><td>decentralized finance</td><td>1</td><td>16,000</td><td>4</td><td><a href="https://www.trmlabs.com/glossary/decentralized-finance" target="_blank">glossary/decentralized-finance</a></td></tr>
+                            <tr><td>decentralized finance (defi)</td><td>1</td><td>7,800</td><td>0</td><td><a href="https://www.trmlabs.com/glossary/decentralized-finance" target="_blank">glossary/decentralized-finance</a></td></tr>
+                            <tr><td>what is blockchain technology</td><td>7</td><td>7,700</td><td>10</td><td><a href="https://www.trmlabs.com/glossary/blockchain-technology" target="_blank">glossary/blockchain-technology</a></td></tr>
+                            <tr><td>what is fiat money</td><td>1</td><td>5,600</td><td>10</td><td><a href="https://www.trmlabs.com/glossary/fiat-currency" target="_blank">glossary/fiat-currency</a></td></tr>
+                            <tr><td>malone lam</td><td>5</td><td>4,400</td><td>333</td><td><a href="https://www.trmlabs.com/resources/blog/doj-crypto-case" target="_blank">doj-crypto-case</a></td></tr>
+                            <tr><td>crypto executive order</td><td>7</td><td>3,900</td><td>232</td><td><a href="https://www.trmlabs.com/resources/blog/trumps-executive-order" target="_blank">trumps-executive-order</a></td></tr>
+                            <tr><td>avraham eisenberg</td><td>2</td><td>3,800</td><td>551</td><td><a href="https://www.trmlabs.com/resources/blog/mango-markets" target="_blank">mango-markets</a></td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div id="elliptic-gap" class="tab-content">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Keyword</th>
+                                <th>Position</th>
+                                <th>Volume</th>
+                                <th>Traffic</th>
+                                <th>URL</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>stable coin</td><td>1</td><td>12,000</td><td>0</td><td><a href="https://www.elliptic.co/blockchain-basics/different-types-of-stablecoins" target="_blank">different-types-of-stablecoins</a></td></tr>
+                            <tr><td>undresser ai</td><td>1</td><td>5,600</td><td>2,023</td><td><a href="https://www.elliptic.co/blog/ai-deepfake-undresser-tools" target="_blank">ai-deepfake-undresser-tools</a></td></tr>
+                            <tr><td>what are stablecoins</td><td>3</td><td>5,200</td><td>0</td><td><a href="https://www.elliptic.co/blockchain-basics/different-types-of-stablecoins" target="_blank">different-types-of-stablecoins</a></td></tr>
+                            <tr><td>区块链查询</td><td>10</td><td>4,300</td><td>94</td><td><a href="https://www.elliptic.co/" target="_blank">https://www.elliptic.co/</a></td></tr>
+                            <tr><td>mica stablecoin news</td><td>1</td><td>4,200</td><td>0</td><td><a href="https://www.elliptic.co/blog/mica-stablecoin-provisions" target="_blank">mica-stablecoin-provisions</a></td></tr>
+                            <tr><td>clarity act update</td><td>1</td><td>3,000</td><td>218</td><td><a href="https://www.elliptic.co/blog/crypto-regulatory-affairs-clarity-act" target="_blank">crypto-regulatory-affairs-clarity-act</a></td></tr>
+                            <tr><td>rwa crypto</td><td>1</td><td>1,600</td><td>0</td><td><a href="https://www.elliptic.co/blockchain-basics/real-world-asset-tokenization" target="_blank">real-world-asset-tokenization</a></td></tr>
+                            <tr><td>crypto meeting</td><td>1</td><td>1,000</td><td>83</td><td><a href="https://www.elliptic.co/blog/crypto-regulatory-affairs-us-congress" target="_blank">crypto-regulatory-affairs-us-congress</a></td></tr>
+                            <tr><td>ai porn undresser</td><td>2</td><td>800</td><td>112</td><td><a href="https://www.elliptic.co/blog/ai-deepfake-undresser" target="_blank">ai-deepfake-undresser</a></td></tr>
+                            <tr><td>rwa tokenization</td><td>1</td><td>700</td><td>35</td><td><a href="https://www.elliptic.co/blockchain-basics/real-world-asset-tokenization" target="_blank">real-world-asset-tokenization</a></td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- AI Overview Performance -->
+            <section id="aio-performance" class="section">
+                <h2 class="section-title">AI Overview Performance</h2>
+                <p class="section-desc">Keywords appearing in Google AI Overviews, showing competitive dominance in AI-generated search results and traffic opportunities from emerging SERP features.</p>
+
+                <div class="charts-row">
+                    <div class="chart-container">
+                        <div class="chart-title">AI Overview Keywords Count</div>
+                        <div style="height:250px;"><canvas id="aioCountChart"></canvas></div>
+                    </div>
+                    <div class="chart-container">
+                        <div class="chart-title">AI Overview Traffic Comparison</div>
+                        <div style="height:250px;"><canvas id="aioTrafficChart"></canvas></div>
+                    </div>
+                </div>
+
+                <div class="metric-card" style="margin-bottom: 32px;">
+                    <div class="metric-label">Total AI Overview Keywords</div>
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 16px;">
+                        <div style="text-align: center;">
+                            <div style="font-size: 24px; font-weight: 700; color: #1a56db;">25+</div>
+                            <div style="font-size: 12px; color: #6b7280; margin-top: 4px;">Chainalysis</div>
+                        </div>
+                        <div style="text-align: center;">
+                            <div style="font-size: 24px; font-weight: 700; color: #f59e0b;">25+</div>
+                            <div style="font-size: 12px; color: #6b7280; margin-top: 4px;">TRM Labs</div>
+                        </div>
+                        <div style="text-align: center;">
+                            <div style="font-size: 24px; font-weight: 700; color: #ef4444;">25+</div>
+                            <div style="font-size: 12px; color: #6b7280; margin-top: 4px;">Elliptic</div>
+                        </div>
+                    </div>
+                </div>
+
+                <h3 style="font-size: 18px; font-weight: 600; margin: 32px 0 16px; color: #111827;">Top AI Overview Keywords by Traffic</h3>
+                <div class="chart-container">
+                    <div class="chart-desc">Highest-traffic keywords appearing in AI Overviews (top 10 per domain)</div>
+                    <div style="height:400px;"><canvas id="aioTopKeywordsChart"></canvas></div>
+                </div>
+
+                <div class="tabs">
+                    <button class="tab-button active" onclick="switchAioTab('chainalysis-aio', event)">Chainalysis</button>
+                    <button class="tab-button" onclick="switchAioTab('trmlabs-aio', event)">TRM Labs</button>
+                    <button class="tab-button" onclick="switchAioTab('elliptic-aio', event)">Elliptic</button>
+                </div>
+
+                <div id="chainalysis-aio" class="tab-content active">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Keyword</th>
+                                <th>Position</th>
+                                <th>Volume</th>
+                                <th>Traffic</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>chain analysis</td><td>1</td><td>1,200</td><td>356</td></tr>
+                            <tr><td>blockchain analysis</td><td>1</td><td>350</td><td>163</td></tr>
+                            <tr><td>crypto compliance</td><td>1</td><td>350</td><td>125</td></tr>
+                            <tr><td>crypto adoption</td><td>1</td><td>150</td><td>58</td></tr>
+                            <tr><td>stablecoin examples</td><td>1</td><td>450</td><td>53</td></tr>
+                            <tr><td>crypto analysis tools</td><td>1</td><td>250</td><td>51</td></tr>
+                            <tr><td>jonathan levin chainalysis</td><td>1</td><td>350</td><td>51</td></tr>
+                            <tr><td>crypto investigations</td><td>1</td><td>150</td><td>50</td></tr>
+                            <tr><td>crypto perpetuals</td><td>1</td><td>100</td><td>40</td></tr>
+                            <tr><td>crypto analysis software</td><td>1</td><td>100</td><td>38</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div id="trmlabs-aio" class="tab-content">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Keyword</th>
+                                <th>Position</th>
+                                <th>Volume</th>
+                                <th>Traffic</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>nobitex</td><td>1</td><td>3,700</td><td>3,841</td></tr>
+                            <tr><td>trm</td><td>1</td><td>3,800</td><td>2,237</td></tr>
+                            <tr><td>fiat currency</td><td>1</td><td>26,000</td><td>1,569</td></tr>
+                            <tr><td>can bitcoin be traced</td><td>1</td><td>700</td><td>181</td></tr>
+                            <tr><td>blockchain analytics</td><td>1</td><td>450</td><td>169</td></tr>
+                            <tr><td>what is fiat currency</td><td>1</td><td>2,500</td><td>108</td></tr>
+                            <tr><td>fiat currency definition</td><td>1</td><td>2,700</td><td>102</td></tr>
+                            <tr><td>blockchain forensics</td><td>1</td><td>250</td><td>92</td></tr>
+                            <tr><td>virtual asset service provider</td><td>1</td><td>150</td><td>52</td></tr>
+                            <tr><td>cryptocurrency transaction monitoring</td><td>1</td><td>150</td><td>49</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div id="elliptic-aio" class="tab-content">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Keyword</th>
+                                <th>Position</th>
+                                <th>Volume</th>
+                                <th>Traffic</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>crypto compliance software</td><td>1</td><td>250</td><td>83</td></tr>
+                            <tr><td>crypto meeting</td><td>1</td><td>1,000</td><td>83</td></tr>
+                            <tr><td>eliptic</td><td>1</td><td>400</td><td>69</td></tr>
+                            <tr><td>blockchain analytics</td><td>1</td><td>450</td><td>50</td></tr>
+                            <tr><td>rwa tokenization</td><td>1</td><td>700</td><td>35</td></tr>
+                            <tr><td>carding sites</td><td>1</td><td>150</td><td>34</td></tr>
+                            <tr><td>stablecoin use cases</td><td>1</td><td>250</td><td>34</td></tr>
+                            <tr><td>blockchain forensics</td><td>1</td><td>250</td><td>29</td></tr>
+                            <tr><td>ellipic</td><td>1</td><td>20</td><td>24</td></tr>
+                            <tr><td>travel rule crypto</td><td>1</td><td>200</td><td>22</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h3 style="font-size: 18px; font-weight: 600; margin: 32px 0 16px; color: #111827;">Key Insights</h3>
+                <div class="insight-grid">
+                    <div class="insight-box">
+                        <h3>Chainalysis Strength</h3>
+                        <p>Dominates AIO results for core blockchain and compliance keywords. Strong position in "chain analysis," "blockchain analysis," and regulatory topics. 25+ keywords in AIOs with 1,200+ total traffic.</p>
+                    </div>
+                    <div class="insight-box">
+                        <h3>TRM Labs Opportunity</h3>
+                        <p>Leads on high-volume "fiat currency" (26K monthly volume) with position 1. Strong brand presence with "nobitex" and "trm" keywords. Better traffic volume from AIO presence than Elliptic.</p>
+                    </div>
+                    <div class="insight-box">
+                        <h3>Elliptic Challenge</h3>
+                        <p>Lower AIO traffic volume compared to competitors. Opportunity to improve rankings on compliance-related keywords. Success with "crypto meeting" (1K volume) shows potential in regulatory content.</p>
+                    </div>
+                    <div class="insight-box">
+                        <h3>Market Opportunity</h3>
+                        <p>Stablecoin and regulatory keywords represent high-volume opportunities across all three domains. AIO presence growing—optimize for AI Overview visibility in these strategic areas.</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Strategic Threats & Insights -->
+            <section id="strategic-threats" class="section">
+                <h2 class="section-title">Strategic Threats & Insights</h2>
+                <p class="section-desc">Critical competitive analysis identifying growth threats, keyword gaps, and strategic opportunities based on 12-month trends and market dynamics.</p>
+
+                <h3 style="font-size: 18px; font-weight: 600; margin: 24px 0 16px; color: #111827;">Threat Assessment</h3>
+
+                <div class="threat-card">
+                    <div class="threat-header critical">
+                        <span class="threat-severity critical">CRITICAL</span>
+                        <div>
+                            <div class="threat-title">TRM Labs Aggressive Growth</div>
+                            <div class="threat-desc">TRM Labs has grown referring domains 162% in 12 months (3,598 → 9,437), significantly outpacing Chainalysis's 20% growth (19,499 → 23,341). Domain rating grew from 70 to 75. Competitive threat in authority and backlink acquisition.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="threat-card">
+                    <div class="threat-header warning">
+                        <span class="threat-severity warning">WARNING</span>
+                        <div>
+                            <div class="threat-title">Elliptic's Dramatic Traffic Spike</div>
+                            <div class="threat-desc">Elliptic experienced massive organic traffic spike (peaking at 47,499 in Jan 2026) driven by "undresser ai" viral content (5,600 volume, 3,688 traffic). Currently stabilizing (7,632) but demonstrates ability to capture high-volume opportunities. This could repeat with other trending topics.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="threat-card">
+                    <div class="threat-header warning">
+                        <span class="threat-severity warning">WARNING</span>
+                        <div>
+                            <div class="threat-title">Traffic Volatility in Chainalysis</div>
+                            <div class="threat-desc">Chainalysis organic traffic declined 34% from peak (37,253 in Mar 2025) to 24,489 in Apr 2026. While still leading both competitors, this downward trend suggests content performance challenges or algorithm impacts on top-ranking pages.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="threat-card">
+                    <div class="threat-header warning">
+                        <span class="threat-severity warning">WARNING</span>
+                        <div>
+                            <div class="threat-title">Keyword Coverage Gaps</div>
+                            <div class="threat-desc">TRM Labs dominates "fiat currency" (26,000 volume, position 1) where Chainalysis has limited presence. Large education-first keyword opportunities in stablecoins, DeFi, and blockchain basics not fully captured by Chainalysis.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="threat-card">
+                    <div class="threat-header opportunity">
+                        <span class="threat-severity opportunity">OPPORTUNITY</span>
+                        <div>
+                            <div class="threat-title">AI Overview First-Mover Advantage</div>
+                            <div class="threat-desc">Chainalysis leads in AIO keywords (25+) with strong compliance positioning. Opportunity to further dominate regulatory and technical blockchain keywords before competitors solidify their AIO presence. Focus on creator content for "crypto compliance," "blockchain analytics," "crypto investigations."</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="threat-card">
+                    <div class="threat-header opportunity">
+                        <span class="threat-severity opportunity">OPPORTUNITY</span>
+                        <div>
+                            <div class="threat-title">Geographic Expansion</div>
+                            <div class="threat-desc">Chainalysis generates 88% of traffic from US (25,405/28,800). International markets (UK 10%, India 7%, Canada 6%) are underpenetrated. Create localized content for European markets (Germany, Netherlands) where competitors are also weak.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="threat-card">
+                    <div class="threat-header opportunity">
+                        <span class="threat-severity opportunity">OPPORTUNITY</span>
+                        <div>
+                            <div class="threat-title">Content Standardization Strategy</div>
+                            <div class="threat-desc">Both TRM Labs and Elliptic use glossary/educational content effectively (fiat currency, stablecoin definitions). Chainalysis's homepage dominates but blog content is fragmented. Create comprehensive educational hub targeting 10K-26K volume definition keywords.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <h3 style="font-size: 18px; font-weight: 600; margin: 32px 0 16px; color: #111827;">Growth Metrics (12-Month Comparison)</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Metric</th>
+                            <th>Chainalysis</th>
+                            <th>TRM Labs</th>
+                            <th>Elliptic</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>Organic Traffic Change</td><td>-34% (37.3K → 24.5K)</td><td>+74% (11.2K → 19.4K)</td><td>+69% (4.5K → 7.6K)</td></tr>
+                        <tr><td>Domain Rating Change</td><td>+2pts (81 → 83)</td><td>+5pts (70 → 75)</td><td>+1pt (74 → 75)</td></tr>
+                        <tr><td>Referring Domains Change</td><td>+20% (19.5K → 23.3K)</td><td>+162% (3.6K → 9.4K)</td><td>+64% (7.0K → 11.5K)</td></tr>
+                    </tbody>
+                </table>
+                <p style="font-size: 12px; color: #9ca3af; margin-top: 8px;">*Elliptic spike in Jan 2026 (47,499) due to viral "undresser ai" content; currently 3-month decline from peak</p>
+
+                <h3 style="font-size: 18px; font-weight: 600; margin: 32px 0 16px; color: #111827;">Strategic Recommendations</h3>
+                <div class="insight-grid">
+                    <div class="insight-box">
+                        <h3>1. Stabilize Traffic Decline</h3>
+                        <p>Investigate top-performing content from Mar 2025 (58K traffic peak). Audit homepage and blog ranking drops. Implement content refresh strategy for blog posts showing CTR/position declines. Focus on maintaining leadership in core keywords while rebuilding lost rankings.</p>
+                    </div>
+                    <div class="insight-box">
+                        <h3>2. Defend Authority Position</h3>
+                        <p>TRM Labs growing 142% faster in referring domains. Accelerate enterprise/education outreach. Create linkable assets (whitepapers, reports, tools) targeting high-authority domains in compliance and fintech verticals. Defend top-10 positions in core competitive keywords.</p>
+                    </div>
+                    <div class="insight-box">
+                        <h3>3. Own Educational Keywords</h3>
+                        <p>Create comprehensive glossary/guide content targeting fiat currency (26K), stablecoin (17K), and DeFi (16K) keywords. TRM Labs owns "fiat currency" with high traffic. Chainalysis should build educational hub covering compliance and blockchain basics comprehensively.</p>
+                    </div>
+                    <div class="insight-box">
+                        <h3>4. Lock in AIO Dominance</h3>
+                        <p>Chainalysis leads in AI Overview presence. Create structured content (how-to guides, expert explainers) optimized for AI Overview citations. Target regulatory, compliance, and technical keywords where Chainalysis expertise is strongest. Maintain first-mover advantage before competitors catch up.</p>
+                    </div>
+                </div>
+            </section>
+
+            <div class="footer">Generated on April 13, 2026 | Data as of April 13, 2026</div>
+        </main>
+    </div>
+
+    <script>
+        const commonChartOptions = {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            plugins: {
+                legend: { display: true, position: 'top' },
+                tooltip: {
+                    callbacks: {
+                        afterBody: function(tooltipItems) {
+                            if (tooltipItems.length < 2) return '';
+                            const values = tooltipItems.map(t => t.raw || 0);
+                            const total = values.reduce((a, b) => a + b, 0);
+                            if (total === 0) return '';
+                            let lines = ['\n── Share ──'];
+                            tooltipItems.forEach((t) => {
+                                const pct = ((t.raw / total) * 100).toFixed(1);
+                                lines.push(t.dataset.label + ': ' + pct + '%');
+                            });
+                            return lines;
+                        }
+                    }
+                }
+            }
+        };
+
+        function formatNum(n) {
+            if (n >= 1000000) return (n / 1000000).toFixed(1) + 'M';
+            if (n >= 1000) return n.toLocaleString();
+            return n.toString();
+        }
+
+        function switchSection(sectionId, e) {
+            e.preventDefault();
+            document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+            document.getElementById(sectionId).classList.add('active');
+            document.querySelectorAll('.nav-link').forEach(a => a.classList.remove('active'));
+            event.target.classList.add('active');
+        }
+
+        function switchTopPagesTab(domain, e) {
+            e.preventDefault();
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            document.getElementById(domain + '-pages').classList.add('active');
+            document.querySelectorAll('.tabs').forEach(tabs => {
+                tabs.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'));
+            });
+            event.target.classList.add('active');
+        }
+
+        function switchGapTab(gapId, e) {
+            e.preventDefault();
+            document.querySelectorAll('#trm-gap, #elliptic-gap').forEach(t => t.classList.remove('active'));
+            document.getElementById(gapId).classList.add('active');
+            const tabs = event.target.parentElement;
+            tabs.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'));
+            event.target.classList.add('active');
+        }
+
+        function switchAioTab(aioId, e) {
+            e.preventDefault();
+            document.querySelectorAll('#chainalysis-aio, #trmlabs-aio, #elliptic-aio').forEach(t => t.classList.remove('active'));
+            document.getElementById(aioId).classList.add('active');
+            const tabs = event.target.parentElement;
+            tabs.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'));
+            event.target.classList.add('active');
+        }
+
+        // Chart data
+        const months = ['Mar 2025', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'Jan 2026', 'Feb', 'Mar', 'Apr'];
+
+        const chainalysisTraffic = [37253, 35609, 25377, 29715, 24698, 23315, 20686, 20314, 19382, 23274, 29376, 27012, 24769, 24489];
+        const trmTraffic = [11160, 15402, 13142, 11436, 13563, 13899, 12683, 13768, 14271, 14966, 14169, 19666, 15095, 19367];
+        const ellipticTraffic = [4518, 8290, 7950, 9446, 4071, 3308, 4624, 7127, 15746, 38107, 47499, 17931, 14719, 7632];
+
+        const chainalysisCost = [3888940, 3724133, 2982891, 4248452, 3254511, 3257229, 2805985, 2684140, 2514053, 3168630, 3758410, 3275253, 3253661, 3278233];
+        const trmCost = [1020853, 2435531, 1083001, 703646, 770135, 835203, 728530, 879026, 1193616, 983691, 778485, 1101740, 1100196, 1116379];
+        const ellipticCost = [275356, 436786, 446841, 374113, 222058, 212004, 297357, 367389, 574654, 813009, 909516, 626976, 623029, 466555];
+
+        // SOV Calculation
+        const totalTraffic = chainalysisTraffic.map((c, i) => c + trmTraffic[i] + ellipticTraffic[i]);
+        const sovChainalysis = chainalysisTraffic.map((c, i) => (c / totalTraffic[i]) * 100);
+        const sovTrm = trmTraffic.map((t, i) => (t / totalTraffic[i]) * 100);
+        const sovElliptic = ellipticTraffic.map((e, i) => (e / totalTraffic[i]) * 100);
+
+        setTimeout(function() {
+            // SOV Chart
+            new Chart(document.getElementById('sovChart'), {
+                type: 'line',
+                data: {
+                    labels: months,
+                    datasets: [
+                        { label: 'Chainalysis', data: sovChainalysis, borderColor: '#1a56db', backgroundColor: '#1a56db15', fill: true, tension: 0.4 },
+                        { label: 'TRM Labs', data: sovTrm, borderColor: '#f59e0b', backgroundColor: '#f59e0b15', fill: true, tension: 0.4 },
+                        { label: 'Elliptic', data: sovElliptic, borderColor: '#ef4444', backgroundColor: '#ef444415', fill: true, tension: 0.4 }
+                    ]
+                },
+                options: {
+                    ...commonChartOptions,
+                    scales: {
+                        y: { stacked: true, max: 100, ticks: { callback: v => v + '%' }, beginAtZero: true },
+                        x: { grid: { display: false } }
+                    }
+                }
+            });
+
+            // Traffic Volume Chart
+            new Chart(document.getElementById('trafficVolumeChart'), {
+                type: 'line',
+                data: {
+                    labels: months,
+                    datasets: [
+                        { label: 'Chainalysis', data: chainalysisTraffic, borderColor: '#1a56db', backgroundColor: '#1a56db15', fill: true, tension: 0.4, pointRadius: 3 },
+                        { label: 'TRM Labs', data: trmTraffic, borderColor: '#f59e0b', backgroundColor: '#f59e0b15', fill: true, tension: 0.4, pointRadius: 3 },
+                        { label: 'Elliptic', data: ellipticTraffic, borderColor: '#ef4444', backgroundColor: '#ef444415', fill: true, tension: 0.4, pointRadius: 3 }
+                    ]
+                },
+                options: { ...commonChartOptions, scales: { y: { beginAtZero: true }, x: { grid: { display: false } } } }
+            });
+
+            // Traffic Value Chart
+            new Chart(document.getElementById('trafficValueChart'), {
+                type: 'line',
+                data: {
+                    labels: months,
+                    datasets: [
+                        { label: 'Chainalysis', data: chainalysisCost.map(c => c / 100), borderColor: '#1a56db', backgroundColor: '#1a56db15', fill: true, tension: 0.4, pointRadius: 3 },
+                        { label: 'TRM Labs', data: trmCost.map(c => c / 100), borderColor: '#f59e0b', backgroundColor: '#f59e0b15', fill: true, tension: 0.4, pointRadius: 3 },
+                        { label: 'Elliptic', data: ellipticCost.map(c => c / 100), borderColor: '#ef4444', backgroundColor: '#ef444415', fill: true, tension: 0.4, pointRadius: 3 }
+                    ]
+                },
+                options: { ...commonChartOptions, scales: { y: { beginAtZero: true }, x: { grid: { display: false } } } }
+            });
+
+            // DR Chart
+            const drChainalysis = [81, 81, 81, 81, 81, 81, 81, 82, 82, 82, 82, 82, 82, 83];
+            const drTrm = [70, 70, 70, 70, 70, 71, 72, 72, 73, 73, 74, 74, 74, 75];
+            const drElliptic = [74, 74, 74, 74, 74, 74, 74, 74, 74, 74, 74, 74, 75, 75];
+
+            new Chart(document.getElementById('drChart'), {
+                type: 'line',
+                data: {
+                    labels: months,
+                    datasets: [
+                        { label: 'Chainalysis', data: drChainalysis, borderColor: '#1a56db', backgroundColor: '#1a56db15', fill: false, tension: 0.4, pointRadius: 3 },
+                        { label: 'TRM Labs', data: drTrm, borderColor: '#f59e0b', backgroundColor: '#f59e0b15', fill: false, tension: 0.4, pointRadius: 3 },
+                        { label: 'Elliptic', data: drElliptic, borderColor: '#ef4444', backgroundColor: '#ef444415', fill: false, tension: 0.4, pointRadius: 3 }
+                    ]
+                },
+                options: { ...commonChartOptions, scales: { y: { min: 65, max: 85, beginAtZero: false }, x: { grid: { display: false } } } }
+            });
+
+            // Referring Domains Chart
+            const refChainalysis = [19499, 19844, 19741, 19520, 19557, 19872, 20487, 21162, 21541, 22156, 23030, 23017, 23520, 23341];
+            const refTrm = [3598, 3876, 4086, 4368, 4960, 5536, 5948, 6780, 7005, 8383, 9339, 9627, 9497, 9437];
+            const refElliptic = [7009, 7108, 7047, 7232, 7511, 7799, 8140, 9055, 9452, 10632, 11359, 11343, 11590, 11487];
+
+            new Chart(document.getElementById('refdomainsChart'), {
+                type: 'line',
+                data: {
+                    labels: months,
+                    datasets: [
+                        { label: 'Chainalysis', data: refChainalysis, borderColor: '#1a56db', backgroundColor: '#1a56db15', fill: true, tension: 0.4, pointRadius: 3 },
+                        { label: 'TRM Labs', data: refTrm, borderColor: '#f59e0b', backgroundColor: '#f59e0b15', fill: true, tension: 0.4, pointRadius: 3 },
+                        { label: 'Elliptic', data: refElliptic, borderColor: '#ef4444', backgroundColor: '#ef444415', fill: true, tension: 0.4, pointRadius: 3 }
+                    ]
+                },
+                options: { ...commonChartOptions, scales: { y: { beginAtZero: true }, x: { grid: { display: false } } } }
+            });
+
+            // Monthly Traffic Comparison
+            new Chart(document.getElementById('monthlyTrafficChart'), {
+                type: 'line',
+                data: {
+                    labels: months,
+                    datasets: [
+                        { label: 'Chainalysis', data: chainalysisTraffic, borderColor: '#1a56db', backgroundColor: '#1a56db15', fill: false, tension: 0.4, pointRadius: 4, borderWidth: 2 },
+                        { label: 'TRM Labs', data: trmTraffic, borderColor: '#f59e0b', backgroundColor: '#f59e0b15', fill: false, tension: 0.4, pointRadius: 4, borderWidth: 2 },
+                        { label: 'Elliptic', data: ellipticTraffic, borderColor: '#ef4444', backgroundColor: '#ef444415', fill: false, tension: 0.4, pointRadius: 4, borderWidth: 2 }
+                    ]
+                },
+                options: { ...commonChartOptions, scales: { y: { beginAtZero: true }, x: { grid: { display: false } } } }
+            });
+
+            // Countries Chart
+            const countries = ['US', 'UK', 'India', 'Canada', 'Japan', 'Germany', 'South Korea', 'Brazil', 'Singapore', 'Australia'];
+            const countryTraffic = [24754, 2865, 2068, 1655, 756, 691, 667, 638, 603, 551];
+
+            new Chart(document.getElementById('countriesChart'), {
+                type: 'bar',
+                data: {
+                    labels: countries,
+                    datasets: [{ label: 'Organic Traffic', data: countryTraffic, backgroundColor: '#1a56db', borderRadius: 6 }]
+                },
+                options: { ...commonChartOptions, indexAxis: 'y', plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true } } }
+            });
+
+            // Competitive Metrics - Referring Domains
+            new Chart(document.getElementById('refdomainsCompChart'), {
+                type: 'bar',
+                data: {
+                    labels: ['Chainalysis', 'TRM Labs', 'Elliptic'],
+                    datasets: [{ data: [23661, 9505, 11526], backgroundColor: ['#1a56db', '#f59e0b', '#ef4444'], borderRadius: 6 }]
+                },
+                options: { ...commonChartOptions, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+            });
+
+            // DR Comparison
+            new Chart(document.getElementById('drCompChart'), {
+                type: 'bar',
+                data: {
+                    labels: ['Chainalysis', 'TRM Labs', 'Elliptic'],
+                    datasets: [{ data: [83, 75, 75], backgroundColor: ['#1a56db', '#f59e0b', '#ef4444'], borderRadius: 6 }]
+                },
+                options: { ...commonChartOptions, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, max: 100 } } }
+            });
+
+            // Traffic Comparison
+            new Chart(document.getElementById('trafficCompChart'), {
+                type: 'bar',
+                data: {
+                    labels: ['Chainalysis', 'TRM Labs', 'Elliptic'],
+                    datasets: [{ data: [24754, 19558, 7301], backgroundColor: ['#1a56db', '#f59e0b', '#ef4444'], borderRadius: 6 }]
+                },
+                options: { ...commonChartOptions, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+            });
+
+            // Keywords Comparison
+            new Chart(document.getElementById('keywordsCompChart'), {
+                type: 'bar',
+                data: {
+                    labels: ['Chainalysis', 'TRM Labs', 'Elliptic'],
+                    datasets: [{ data: [2722, 1829, 920], backgroundColor: ['#1a56db', '#f59e0b', '#ef4444'], borderRadius: 6 }]
+                },
+                options: { ...commonChartOptions, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+            });
+
+            // Value Comparison
+            new Chart(document.getElementById('valueCompChart'), {
+                type: 'bar',
+                data: {
+                    labels: ['Chainalysis', 'TRM Labs', 'Elliptic'],
+                    datasets: [{ data: [32931, 11408, 4441], backgroundColor: ['#1a56db', '#f59e0b', '#ef4444'], borderRadius: 6 }]
+                },
+                options: { ...commonChartOptions, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+            });
+
+            // Backlinks Comparison
+            new Chart(document.getElementById('backlinksCompChart'), {
+                type: 'bar',
+                data: {
+                    labels: ['Chainalysis', 'TRM Labs', 'Elliptic'],
+                    datasets: [{ data: [4227891, 106752, 119510], backgroundColor: ['#1a56db', '#f59e0b', '#ef4444'], borderRadius: 6 }]
+                },
+                options: { ...commonChartOptions, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+            });
+
+            // AIO Count Chart
+            new Chart(document.getElementById('aioCountChart'), {
+                type: 'bar',
+                data: {
+                    labels: ['Chainalysis', 'TRM Labs', 'Elliptic'],
+                    datasets: [{ data: [25, 25, 25], backgroundColor: ['#1a56db', '#f59e0b', '#ef4444'], borderRadius: 6 }]
+                },
+                options: { ...commonChartOptions, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+            });
+
+            // AIO Traffic Chart
+            new Chart(document.getElementById('aioTrafficChart'), {
+                type: 'bar',
+                data: {
+                    labels: ['Chainalysis', 'TRM Labs', 'Elliptic'],
+                    datasets: [{ data: [1198, 8407, 606], backgroundColor: ['#1a56db', '#f59e0b', '#ef4444'], borderRadius: 6 }]
+                },
+                options: { ...commonChartOptions, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+            });
+
+            // AIO Top Keywords Chart
+            const aioKeywords = ['Chain Analysis', 'Nobitex', 'Fiat Currency', 'Blockchain Analysis', 'Undresser AI', 'TRM'];
+            const aioChainTraffic = [356, 0, 0, 163, 0, 0];
+            const aioTrmTraffic = [0, 3841, 1569, 0, 0, 2237];
+            const aioEllipticTraffic = [0, 0, 0, 0, 2023, 0];
+
+            new Chart(document.getElementById('aioTopKeywordsChart'), {
+                type: 'bar',
+                data: {
+                    labels: aioKeywords,
+                    datasets: [
+                        { label: 'Chainalysis', data: aioChainTraffic, backgroundColor: '#1a56db' },
+                        { label: 'TRM Labs', data: aioTrmTraffic, backgroundColor: '#f59e0b' },
+                        { label: 'Elliptic', data: aioEllipticTraffic, backgroundColor: '#ef4444' }
+                    ]
+                },
+                options: { ...commonChartOptions, indexAxis: 'y', scales: { x: { stacked: true, beginAtZero: true } } }
+            });
+
+        }, 100);
+    </script>
+</body>
+</html>
