@@ -6,6 +6,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Competitive Intelligence Dashboard - Digital Reach Agency</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -606,31 +608,75 @@
         }
 
         @media print {
-            .sidebar {
-                display: none;
-            }
+            /* Hide interactive-only elements */
+            .sidebar, #exportPdfBtn, .tabs { display: none !important; }
 
-            .main-content {
-                margin-left: 0;
-            }
+            /* Reset layout */
+            .container { display: block; height: auto; overflow: visible; }
+            .main-content { margin-left: 0 !important; overflow: visible; }
+            body { background: white; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 
-            .section {
-                display: block !important;
-                page-break-inside: avoid;
-                padding: 0 0 20px;
-            }
+            /* Show ALL sections */
+            .section { display: block !important; padding: 0 20px 16px; }
 
-            .chart-wrapper {
-                height: 300px;
-            }
+            /* Show ALL tab content panels so every table prints */
+            .tab-content { display: block !important; margin-bottom: 16px; }
 
-            body {
-                background: white;
-            }
-
+            /* Header styling */
             .header {
+                background: #1a56db !important;
+                color: white !important;
+                padding: 20px 24px !important;
+                margin-bottom: 16px;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
                 page-break-after: avoid;
             }
+            .header h1 { color: white !important; font-size: 22px; }
+            .header p { color: rgba(255,255,255,0.9) !important; }
+
+            /* Charts — fixed height so they render and don't collapse */
+            .chart-wrapper { height: 280px; }
+            .chart-container { break-inside: avoid; page-break-inside: avoid; margin-bottom: 16px; }
+
+            /* Cards and grids */
+            .kpi-grid { grid-template-columns: repeat(4, 1fr); gap: 12px; }
+            .kpi-card { border-top: 3px solid #1a56db; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            .kpi-card.trm { border-top-color: #f59e0b; }
+            .kpi-card.elliptic { border-top-color: #ef4444; }
+
+            /* Charts row and metrics grid */
+            .charts-row { grid-template-columns: 1fr 1fr; gap: 16px; }
+            .metrics-grid { grid-template-columns: 1fr 1fr; gap: 16px; }
+
+            /* Page break hints */
+            .threat-card { break-inside: avoid; page-break-inside: avoid; margin-bottom: 12px; }
+            .threat-header { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            .insight-grid { break-inside: avoid; page-break-inside: avoid; }
+            .insight-box { break-inside: avoid; page-break-inside: avoid; }
+
+            /* Competitor bars */
+            .competitor-bar { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
+            /* Tables */
+            table { font-size: 12px; }
+            th, td { padding: 8px 10px; }
+            thead { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
+            /* Section titles — keep with content */
+            .section-title { page-break-after: avoid; }
+            .section-desc { page-break-after: avoid; }
+
+            /* Info card */
+            .info-card { -webkit-print-color-adjust: exact; print-color-adjust: exact; break-inside: avoid; }
+
+            /* Reduce whitespace */
+            .section-title { font-size: 20px; margin-bottom: 4px; }
+            .section-desc { margin-bottom: 12px; }
+            .chart-title { font-size: 14px; margin-bottom: 12px; }
+
+            /* Footer */
+            .footer { margin-top: 16px; }
         }
 
         .footer {
@@ -667,9 +713,12 @@
 
         <!-- Main Content -->
         <main class="main-content">
-            <div class="header">
-                <h1>Competitive Intelligence Dashboard</h1>
-                <p>Digital Reach Agency | Chainalysis, TRM Labs, and Elliptic Competitive Analysis</p>
+            <div class="header" style="display:flex;justify-content:space-between;align-items:center;">
+                <div>
+                    <h1>Competitive Intelligence Dashboard</h1>
+                    <p>Digital Reach Agency | Chainalysis, TRM Labs, and Elliptic Competitive Analysis</p>
+                </div>
+                <button id="exportPdfBtn" onclick="exportToPDF()" style="background:white;color:#1a56db;border:none;padding:10px 20px;border-radius:6px;font-size:14px;font-weight:600;cursor:pointer;white-space:nowrap;box-shadow:0 2px 4px rgba(0,0,0,0.15);transition:all 0.2s;">Save as PDF</button>
             </div>
 
             <!-- Executive Summary Section -->
@@ -1657,21 +1706,21 @@
                 charts.executiveSummary = new Chart(ctx, {
                     type: 'bar',
                     data: {
-                        labels: ['Domain Rating', 'Organic Keywords', 'Top 3 Keywords', 'Organic Traffic', 'Referring Domains'],
+                        labels: ['Organic Keywords', 'Top 3 Keywords', 'Organic Traffic', 'Referring Domains'],
                         datasets: [
                             {
                                 label: 'Chainalysis',
-                                data: [83, 2722, 567, 24754, 23735],
+                                data: [2722, 567, 24754, 23735],
                                 backgroundColor: chartColors.chainalysis
                             },
                             {
                                 label: 'TRM Labs',
-                                data: [75, 1826, 524, 19550, 9536],
+                                data: [1826, 524, 19550, 9536],
                                 backgroundColor: chartColors.trmlabs
                             },
                             {
                                 label: 'Elliptic',
-                                data: [75, 920, 249, 7301, 11569],
+                                data: [920, 249, 7301, 11569],
                                 backgroundColor: chartColors.elliptic
                             }
                         ]
@@ -2432,6 +2481,116 @@
                 });
             }
         }, 200);
+
+        // PDF Export — html2canvas captures charts as rasterized images, then jsPDF assembles pages
+        async function exportToPDF() {
+            const btn = document.getElementById('exportPdfBtn');
+            const originalText = btn.textContent;
+            btn.textContent = 'Generating PDF...';
+            btn.disabled = true;
+            btn.style.opacity = '0.6';
+
+            // Save original DOM state
+            const sections = document.querySelectorAll('.section');
+            const sidebar = document.querySelector('.sidebar');
+            const mainContent = document.querySelector('.main-content');
+            const savedStates = Array.from(sections).map(s => s.classList.contains('active'));
+            const tabContents = document.querySelectorAll('.tab-content');
+            const savedTabStates = Array.from(tabContents).map(t => t.style.display);
+
+            try {
+                // Prepare DOM: show everything, hide sidebar, unlock scroll constraints
+                const container = document.querySelector('.container');
+                container.style.height = 'auto';
+                container.style.overflow = 'visible';
+                mainContent.style.overflow = 'visible';
+                mainContent.style.height = 'auto';
+                mainContent.style.marginLeft = '0';
+                sections.forEach(s => { s.classList.add('active'); s.style.display = 'block'; });
+                tabContents.forEach(t => { t.style.display = 'block'; });
+                sidebar.style.display = 'none';
+                btn.style.visibility = 'hidden';
+
+                // Let charts redraw in the expanded layout
+                await new Promise(r => setTimeout(r, 1000));
+
+                // Capture the entire main-content area as one tall canvas
+                const canvas = await html2canvas(mainContent, {
+                    scale: 1.5,
+                    useCORS: true,
+                    logging: false,
+                    backgroundColor: '#f3f4f6',
+                    windowWidth: 1100,
+                    scrollY: -window.scrollY
+                });
+
+                // Build PDF by slicing the tall canvas into A4 pages
+                const { jsPDF } = window.jspdf;
+                const pdf = new jsPDF('p', 'mm', 'a4');
+                const pageW = pdf.internal.pageSize.getWidth();
+                const pageH = pdf.internal.pageSize.getHeight();
+                const margin = 6;
+                const usableW = pageW - margin * 2;
+                const usableH = pageH - margin * 2;
+
+                // Scale factor: canvas pixels to PDF mm
+                const scaledImgH = (canvas.height * usableW) / canvas.width;
+                const pxPerMm = canvas.height / scaledImgH;
+
+                let srcY = 0;
+                let pageNum = 0;
+
+                while (srcY < canvas.height - 1) {
+                    if (pageNum > 0) pdf.addPage();
+                    pageNum++;
+
+                    const stripPx = Math.min(Math.round(usableH * pxPerMm), canvas.height - srcY);
+                    const stripMm = stripPx / pxPerMm;
+
+                    // Crop this strip from the full canvas
+                    const strip = document.createElement('canvas');
+                    strip.width = canvas.width;
+                    strip.height = stripPx;
+                    const ctx = strip.getContext('2d');
+                    ctx.drawImage(canvas, 0, srcY, canvas.width, stripPx, 0, 0, canvas.width, stripPx);
+
+                    pdf.addImage(strip.toDataURL('image/jpeg', 0.92), 'JPEG', margin, margin, usableW, stripMm);
+                    srcY += stripPx;
+                }
+
+                // Page numbers
+                const total = pdf.internal.getNumberOfPages();
+                for (let p = 1; p <= total; p++) {
+                    pdf.setPage(p);
+                    pdf.setFontSize(8);
+                    pdf.setTextColor(160);
+                    pdf.text('Page ' + p + ' of ' + total, pageW / 2, pageH - 3, { align: 'center' });
+                }
+
+                pdf.save('Chainalysis-Competitive-Intel-' + new Date().toISOString().slice(0, 10) + '.pdf');
+
+            } catch (err) {
+                console.error('PDF export error:', err);
+                alert('PDF generation failed: ' + err.message + '\n\nFallback: use Cmd+P → Save as PDF.');
+            } finally {
+                // ALWAYS restore DOM, even if export fails
+                const containerEl = document.querySelector('.container');
+                containerEl.style.height = '';
+                containerEl.style.overflow = '';
+                mainContent.style.overflow = '';
+                mainContent.style.height = '';
+                mainContent.style.marginLeft = '';
+                sections.forEach((s, i) => {
+                    if (!savedStates[i]) { s.classList.remove('active'); s.style.display = ''; }
+                });
+                tabContents.forEach((t, i) => { t.style.display = savedTabStates[i]; });
+                sidebar.style.display = '';
+                btn.style.visibility = '';
+                btn.textContent = originalText;
+                btn.disabled = false;
+                btn.style.opacity = '1';
+            }
+        }
     </script>
 </body>
 </html>
